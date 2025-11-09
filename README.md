@@ -1,6 +1,6 @@
 # Furry Hub – MM2 Roblox Script
 
-**Version:** 2.5  
+**Version:** 621.0
 **Author:** FertonFox  
 
 ---
