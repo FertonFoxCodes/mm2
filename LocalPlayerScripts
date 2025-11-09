@@ -4,7 +4,7 @@ else
 	game:GetService("Players").LocalPlayer:Kick("This script is designed to Run On MM2")
 end
 
-local TpScript = "https://raw.githubusercontent.com/real-bluez/MM2/refs/heads/main/LocalPlayerScripts"
+local TpScript = "https://raw.githubusercontent.com/fertonfox-art/mm2/refs/heads/main/LocalPlayerScripts"
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 local Players = game:GetService("Players")
 local Plr = Players.LocalPlayer
