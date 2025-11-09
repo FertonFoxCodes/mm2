@@ -201,7 +201,7 @@ WindUI:AddTheme({
 
 local Window = WindUI:CreateWindow({
 	Title = "Furry Hub",
-	Icon = "crown",
+	Icon = "cat",
 	Author = "FertonFox",
 	Folder = "FurryHubScripts",
 	Size = UDim2.fromOffset(580, 460),
@@ -382,8 +382,8 @@ local Tab = Section:Tab({
 })
 
 local Paragraph = Tab:Paragraph({
-	Title = "Thank you for using Us 📚",
-	Desc = "We are the only hub that have been active for 1 year without any bugs and updating in exact update time!",
+	Title = "Thank You For Using My Script🐱",
+	Desc = "I'm A Solo Dev Just Trying To Make A Script That Is Trusted",
 	Color = "Orange",
 	Image = "",
 	ImageSize = 30,
