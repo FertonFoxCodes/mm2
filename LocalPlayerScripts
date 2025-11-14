@@ -28,11 +28,6 @@ local bag_full = false
 local total_collected = 0
 local auto_farm_speed = 15
 local autofarm_enabled = false
-local TeleportService = game:GetService("TeleportService")
-local autoRejoinEnabled = false
-local rejoinInterval = 1800
-local autoRejoinPlaceId = 142823291
-
 
 -- Chat function
 local TextChatService = cloneref(game:GetService("TextChatService"))
@@ -52,21 +47,6 @@ task.spawn(function()
 		VirtualUser:ClickButton2(Vector2.new())
 		task.wait(60)
 	end
-end)
-
--- Auto-Rejoin
-task.spawn(function()
-    while true do
-        task.wait(rejoinInterval)
-        if autoRejoinEnabled then
-            local success, err = pcall(function()
-                TeleportService:Teleport(autoRejoinPlaceId, Players.LocalPlayer)
-            end)
-            if not success then
-                warn("Auto Rejoin Failed: "..tostring(err))
-            end
-        end
-    end
 end)
 
 -- Functions
@@ -257,7 +237,7 @@ Window:EditOpenButton({
 })
 
 Window:Tag({
-	Title = "V 621.0",
+	Title = "V 6.2.1",
 	Color = Color3.fromHex("#b66d00"),
 	Radius = 8,
 })
@@ -1156,8 +1136,7 @@ local Button = Tab:Button({
 	end,
 })
 
-})
-
+Tab:Divider()
 
 local Button = Tab:Button({
 	Title = "Rejoin!",
@@ -1173,8 +1152,6 @@ local Tab = Window:Tab({
 	Icon = "paintbrush",
 	Locked = false,
 })
-
-
 
 local Dropdown = Tab:Dropdown({
 	Title = "Select Theme",
