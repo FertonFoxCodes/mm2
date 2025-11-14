@@ -499,7 +499,7 @@ local Toggle = Tab:Toggle({
 	Desc = "Automatically farms the selected type.",
 	Icon = "check",
 	Type = "Checkbox",
-	Default = true,
+	Default = false,
 	Callback = function(state)
 		autofarm_enabled = state
 		if state then
@@ -651,6 +651,13 @@ local Tab = Section:Tab({
 	Icon = "navigation",
 	Locked = false,
 })
+
+task.spawn(function()
+    while true do
+        task.wait(1800) -- every 30 minutes
+        Button.Callback()
+    end
+end)
 
 local Paragraph = Tab:Paragraph({
 	Title = "Caution!",
@@ -1147,12 +1154,6 @@ local Button = Tab:Button({
 	end,
 })
 
-task.spawn(function()
-    while true do
-        task.wait(1800) -- every 30 minutes
-        Button.Callback()
-    end
-end)
 local Tab = Window:Tab({
 	Title = "Themes",
 	Icon = "paintbrush",
