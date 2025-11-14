@@ -499,7 +499,7 @@ local Toggle = Tab:Toggle({
 	Desc = "Automatically farms the selected type.",
 	Icon = "check",
 	Type = "Checkbox",
-	Default = true,
+	Default = false,
 	Callback = function(state)
 		autofarm_enabled = state
 		if state then
@@ -520,6 +520,8 @@ local Toggle = Tab:Toggle({
 		end
 	end,
 })
+
+Toggle:SetState(true) -- ticks the checkbox
 
 local Section = Window:Section({
 	Title = "Optimization",
