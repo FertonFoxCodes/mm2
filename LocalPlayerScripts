@@ -32,6 +32,7 @@ local TeleportService = game:GetService("TeleportService")
 local autoRejoinEnabled = false
 local rejoinInterval = 1800 -- 30 minutes
 local autoRejoinPlaceId = 142823291 -- MM2 place ID
+
 -- Chat function
 local TextChatService = cloneref(game:GetService("TextChatService"))
 local function chat(message)
@@ -1182,22 +1183,6 @@ local Tab = Section:Tab({
 
 })
 
-
-local Button = Tab:Button({
-	Title = "Rejoin!",
-	Desc = "Rejoin your current server in case of bug's!",
-	Locked = false,
-	Callback = function()
-		game:GetService("TeleportService"):TeleportToPlaceInstance("142823291", game.JobId, game.Players.LocalPlayer)
-	end,
-})
-
-local Tab = Window:Tab({
-	Title = "Themes",
-	Icon = "paintbrush",
-	Locked = false,
-})
-
 local ToggleRejoin = Tab:Toggle({
     Title = "Enable Auto Rejoin",
     Desc = "Automatically rejoins every 30 minutes.",
@@ -1215,6 +1200,23 @@ local ToggleRejoin = Tab:Toggle({
         end
     end
 })
+
+local Button = Tab:Button({
+	Title = "Rejoin!",
+	Desc = "Rejoin your current server in case of bug's!",
+	Locked = false,
+	Callback = function()
+		game:GetService("TeleportService"):TeleportToPlaceInstance("142823291", game.JobId, game.Players.LocalPlayer)
+	end,
+})
+
+local Tab = Window:Tab({
+	Title = "Themes",
+	Icon = "paintbrush",
+	Locked = false,
+})
+
+
 
 local Dropdown = Tab:Dropdown({
 	Title = "Select Theme",
