@@ -30,17 +30,8 @@ local auto_farm_speed = 15
 local autofarm_enabled = false
 local TeleportService = game:GetService("TeleportService")
 local autoRejoinEnabled = false
-local rejoinInterval = 1800 -- 30 minutes
-local autoRejoinPlaceId = 142823291 -- MM2 place ID
-
-local Configs = {
-    AutoRejoin = false
-}
-
-local function saveConfigs()
-    -- Placeholder for saving settings if you want persistence
-    print("Configs saved:", Configs)
-end
+local rejoinInterval = 1800
+local autoRejoinPlaceId = 142823291
 
 
 -- Chat function
@@ -1198,11 +1189,8 @@ local ToggleRejoin = Tab:Toggle({
     Desc = "Automatically rejoins every 30 minutes.",
     Icon = "refresh",
     Type = "Checkbox",
-    Default = Configs.AutoRejoin or false,  -- make sure it has a default
     Callback = function(state)
         autoRejoinEnabled = state
-        Configs.AutoRejoin = state
-        saveConfigs()
         if state then
             WindUI:Notify({Title = "Auto Rejoin Enabled", Content = "You will rejoin every 30 minutes.", Duration = 3, Icon = "check"})
         else
