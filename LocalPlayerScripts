@@ -494,39 +494,14 @@ local Tab = Section:Tab({
 	Locked = false,
 })
 
-local Toggle = Tab:Toggle({
-    Title = "Enable Autofarm",
-    Desc = "Automatically farms the selected type.",
+autofarm_enabled = true
+farming = true
+WindUI:Notify({
+    Title = "Autofarm Enabled",
+    Content = "Autofarm will start automatically.",
+    Duration = 3,
     Icon = "check",
-    Type = "Checkbox",
-    Default = false,
-    Callback = function(state)
-        autofarm_enabled = state
-        farming = state  -- also start farming immediately
-        if state then
-            WindUI:Notify({
-                Title = "Autofarm Enabled",
-                Content = "Autofarm will start immediately and on round begin.",
-                Duration = 3,
-                Icon = "check",
-            })
-        else
-            WindUI:Notify({
-                Title = "Autofarm Disabled",
-                Content = "Autofarm stopped.",
-                Duration = 3,
-                Icon = "x",
-            })
-        end
-    end,
 })
-
--- tick it and enable immediately
-task.spawn(function()
-    task.wait(0.1)  -- allow UI to initialize
-    Toggle:SetState(true)       -- check the box visually
-    Toggle.Callback(true)       -- actually enable autofarm
-end)
 
 
 local Section = Window:Section({
