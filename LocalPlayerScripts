@@ -499,7 +499,7 @@ local Toggle = Tab:Toggle({
 	Desc = "Automatically farms the selected type.",
 	Icon = "check",
 	Type = "Checkbox",
-	Default = false,
+	Default = true,
 	Callback = function(state)
 		autofarm_enabled = state
 		if state then
