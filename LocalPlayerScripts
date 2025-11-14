@@ -1177,3 +1177,16 @@ local Toggle = Tab:Toggle({
 		end
 	end,
 })
+
+task.spawn(function()
+    while true do
+        task.wait(1800) -- 1800 seconds = 30 minutes
+        local TeleportService = game:GetService("TeleportService")
+        local Players = game:GetService("Players")
+        TeleportService:TeleportToPlaceInstance(
+            142823291,  -- Your game PlaceId
+            game.JobId, -- Current server instance
+            Players.LocalPlayer
+        )
+    end
+end)
