@@ -165,7 +165,7 @@ WindUI:AddTheme({
 	Accent = Color3.fromHex("#271700"),
 	Dialog = Color3.fromHex("#2b0000"),
 	Outline = Color3.fromHex("#FFFFFF"),
-	Text = Color3.fromHex("#FFFFFF"),
+	Text = Color3.fromHex("#ff00a6"),
 	Placeholder = Color3.fromHex("#7a7a7a"),
 	Background = Color3.fromHex("#2b0000"),
 	Button = Color3.fromHex("#52525b"),
