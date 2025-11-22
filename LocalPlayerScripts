@@ -156,7 +156,7 @@ WindUI:AddTheme({
     Placeholder = Color3.fromHex("#DCDCDC"),  -- Light grey for subtle hints
     Background = Color3.fromHex("#99ecff"),   -- Dark slate background, soft on eyes
     Button = Color3.fromHex("#FFFFFF"),       -- Muted red buttons
-    Icon = Color3.fromHex("#000000"),         -- Soft gold for icons
+    Icon = Color3.fromHex("#D4AF37"),         -- Soft gold for icons
 })
 
 WindUI:AddTheme({
@@ -455,12 +455,31 @@ local Tab = Section:Tab({
 	Locked = false,
 })
 
+local transColors = {
+    Color3.fromHex("#55CDFC"), -- Light blue
+    Color3.fromHex("#F7A8B8"), -- Pink
+    Color3.fromHex("#FFFFFF"), -- White
+    Color3.fromHex("#F7A8B8"), -- Pink
+    Color3.fromHex("#55CDFC"), -- Light blue
+}
+
 local Paragraph = Tab:Paragraph({
-	Title = "Instructions!",
-	Desc = "We limited speed to 22, because of recent reviews saying that anticheat kicks them if above, so please understand us.",
-	Color = "Orange",
-	Locked = false,
+    Title = "Instructions!",
+    Desc = "We limited speed to 22, because of recent reviews saying that anticheat kicks them if above, so please understand us.",
+    Color = transColors[1], -- Start with first color
+    Locked = false,
 })
+
+-- Optional: Animate the color gradient
+task.spawn(function()
+    local i = 1
+    while true do
+        i = i + 1
+        if i > #transColors then i = 1 end
+        Paragraph:SetColor(transColors[i])
+        task.wait(0.5) -- change color every 0.5s
+    end
+end)
 
 Tab:Divider()
 
