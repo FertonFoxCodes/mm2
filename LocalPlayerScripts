@@ -148,16 +148,16 @@ end
 RoundStart.OnClientEvent:Connect(GetMap)
 
 WindUI:AddTheme({
-	Name = "Halloween", -- theme name
+Name = "Christmas", -- theme name
 
-	Accent = Color3.fromHex("#271700"),
-	Dialog = Color3.fromHex("#3f2400"),
-	Outline = Color3.fromHex("#FFFFFF"),
-	Text = Color3.fromHex("#FFFFFF"),
-	Placeholder = Color3.fromHex("#7a7a7a"),
-	Background = Color3.fromHex("#3f2400"),
-	Button = Color3.fromHex("#52525b"),
-	Icon = Color3.fromHex("#ff9100"),
+Accent = Color3.fromHex("#C21A1A"), -- Christmas red
+Dialog = Color3.fromHex("#0F2F1F"), -- Deep pine green
+Outline = Color3.fromHex("#A3D8FF"), -- Frost blue outline
+Text = Color3.fromHex("#FFFFFF"), -- Snow white
+Placeholder = Color3.fromHex("#FFDCA8"), -- Warm gold
+Background = Color3.fromHex("#14312F"), -- Forest green background
+Button = Color3.fromHex("#C21A1A"), -- Red buttons
+Icon = Color3.fromHex("#FFFFFF"), -- White icons
 })
 
 WindUI:AddTheme({
@@ -242,7 +242,7 @@ Window:Tag({
 	Radius = 8,
 })
 
-WindUI:SetTheme("Halloween")
+WindUI:SetTheme("Christmas")
 
 Window:CreateTopbarButton("DarkMode", "moon", function()
 	WindUI:SetTheme("Dark")
