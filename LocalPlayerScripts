@@ -149,7 +149,7 @@ RoundStart.OnClientEvent:Connect(GetMap)
 
 WindUI:AddTheme({
     Name = "Christmas",
-    Accent = Color3.fromHex("#B22222"),       -- Deep red (classic candy cane red)
+    Accent = Color3.fromHex("#00ff3c"),       -- Deep red (classic candy cane red)
     Dialog = Color3.fromHex("#228B22"),       -- Forest green (soft Christmas vibe)
     Outline = Color3.fromHex("#8B4513"),      -- Brownish/golden outline for warmth
     Text = Color3.fromHex("#ff00a6"),         -- White text for clarity
