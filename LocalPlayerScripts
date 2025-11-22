@@ -21,7 +21,7 @@ local CoinCollected = ReplicatedStorage.Remotes.Gameplay:WaitForChild("CoinColle
 local RoundStart = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("RoundStart")
 local RoundEndFade = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("RoundEndFade")
 
-local ToFarm = "Coin"
+local ToFarm = "Egg"
 local start_position = HumanoidRootPart.CFrame
 local farming = false
 local bag_full = false
@@ -467,7 +467,7 @@ Tab:Divider()
 
 local Dropdown = Tab:Dropdown({
 	Title = "Farm Type",
-	Values = { "Coin", "Egg", "Candy" },
+	Values = { "Egg", "Coin", "Candy" },
 	Value = "Coin",
 	Callback = function(option)
 		ToFarm = option
@@ -494,15 +494,32 @@ local Tab = Section:Tab({
 	Locked = false,
 })
 
-autofarm_enabled = true
-farming = true
-WindUI:Notify({
-    Title = "Autofarm Enabled",
-    Content = "Autofarm will start automatically.",
-    Duration = 3,
-    Icon = "check",
+local Toggle = Tab:Toggle({
+	Title = "Enable Autofarm",
+	Desc = "Automatically farms the selected type.",
+	Icon = "check",
+	Type = "Checkbox",
+	Default = false,
+	Callback = function(state)
+		autofarm_enabled = state
+		if state then
+			WindUI:Notify({
+				Title = "Autofarm Enabled",
+				Content = "Autofarm will start on round begin.",
+				Duration = 3,
+				Icon = "check",
+			})
+		else
+			farming = false
+			WindUI:Notify({
+				Title = "Autofarm Disabled",
+				Content = "Autofarm stopped.",
+				Duration = 3,
+				Icon = "x",
+			})
+		end
+	end,
 })
-
 
 local Section = Window:Section({
 	Title = "Optimization",
