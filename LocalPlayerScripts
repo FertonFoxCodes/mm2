@@ -152,10 +152,10 @@ WindUI:AddTheme({
     Accent = Color3.fromHex("#00ff3c"),       -- Deep red (classic candy cane red)
     Dialog = Color3.fromHex("#228B22"),       -- Forest green (soft Christmas vibe)
     Outline = Color3.fromHex("#8B4513"),      -- Brownish/golden outline for warmth
-    Text = Color3.fromHex("#ff00a6"),         -- White text for clarity
+    Text = Color3.fromHex("#ff00ee"),         -- White text for clarity
     Placeholder = Color3.fromHex("#DCDCDC"),  -- Light grey for subtle hints
-    Background = Color3.fromHex("#69cfff"),   -- Dark slate background, soft on eyes
-    Button = Color3.fromHex("#A52A2A"),       -- Muted red buttons
+    Background = Color3.fromHex("#99ecff"),   -- Dark slate background, soft on eyes
+    Button = Color3.fromHex("#FFFFFF"),       -- Muted red buttons
     Icon = Color3.fromHex("#00ff3c"),         -- Soft gold for icons
 })
 
