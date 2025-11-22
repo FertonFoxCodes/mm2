@@ -21,7 +21,7 @@ local CoinCollected = ReplicatedStorage.Remotes.Gameplay:WaitForChild("CoinColle
 local RoundStart = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("RoundStart")
 local RoundEndFade = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("RoundEndFade")
 
-local ToFarm = "Egg"
+local ToFarm = "Coin"
 local start_position = HumanoidRootPart.CFrame
 local farming = false
 local bag_full = false
