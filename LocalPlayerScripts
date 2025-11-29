@@ -683,11 +683,40 @@ local TestButton = Tab:Button({
     Desc = "Send a test embed to your Discord",
     Callback = function()
         save_webhook(WebhookInput.Value)
+
+        -- Fancy animated-style color cycle
+        local colors = {
+            0x00FFFF, -- Cyan
+            0xFF00FF, -- Magenta
+            0x00FF00, -- Bright Green
+            0xFFA500, -- Orange
+            0xFF0000, -- Red
+        }
+        local color = colors[math.random(1, #colors)]
+
         send_webhook(
-            "🦊 Furry Hub Webhook Test",
-            "**Your webhook is working perfectly!**\nThis message confirms everything is connected.",
-            0x00FF00
+            "🦊 **FurryHub Webhook Test**",
+            table.concat({
+                "👋 <@everyone>",
+                "",
+                "✨ Your webhook is online and purring.",
+                "",
+                "📦 **FurryHub Version:** `v6.2.1`",
+                "🛠️ **Status:** Running perfectly",
+                "",
+                "🧪 This was a test message — you're all set.",
+                "",
+                "🔥 **Powered by FertonFox | MM2 Automation Kit**",
+            }, "\n"),
+            color
         )
+
+        WindUI:Notify({
+            Title = "Webhook Test Sent",
+            Content = "A clean embed has been sent to your Discord!",
+            Duration = 3,
+            Icon = "check-circle",
+        })
     end,
 })
 
