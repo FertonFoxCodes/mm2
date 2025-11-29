@@ -697,7 +697,7 @@ local TestButton = Tab:Button({
         send_webhook(
             "🦊 **FurryHub Webhook Test**",
             table.concat({
-                "👋 <@everyone>",
+                "👋 Hello",
                 "",
                 "✨ Your webhook is online and purring.",
                 "",
