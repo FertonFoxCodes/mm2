@@ -584,7 +584,7 @@ local Toggle = Tab:Toggle({
     Default = false,
     Callback = function(state)
 
-        -- Delete old UI
+        -- Remove old UI
         if shootButtonUI then
             shootButtonUI:Destroy()
             shootButtonUI = nil
@@ -592,14 +592,14 @@ local Toggle = Tab:Toggle({
 
         if not state then return end
 
-        -- Create GUI in CoreGui (cannot be deleted by game)
+        -- Create GUI in CoreGui
         shootButtonUI = Instance.new("ScreenGui")
         shootButtonUI.Name = "ShootMurdererUI"
         shootButtonUI.IgnoreGuiInset = true
         shootButtonUI.ResetOnSpawn = false
         shootButtonUI.Parent = game:GetService("CoreGui")
 
-        -- Create button
+        -- Big red shoot button
         local button = Instance.new("TextButton")
         button.Parent = shootButtonUI
         button.Size = UDim2.new(0, 250, 0, 70)
@@ -611,8 +611,8 @@ local Toggle = Tab:Toggle({
         button.Font = Enum.Font.GothamBold
         button.Text = "🔥 SHOOT MURDERER 🔥"
 
-        -- Make button draggable
-        local dragging, dragInput, dragStart, startPos
+        -- Make the button draggable
+        local dragging, dragStart, startPos
 
         button.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -622,14 +622,8 @@ local Toggle = Tab:Toggle({
             end
         end)
 
-        button.InputChanged:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseMovement then
-                dragInput = input
-            end
-        end)
-
         game:GetService("UserInputService").InputChanged:Connect(function(input)
-            if input == dragInput and dragging then
+            if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
                 local delta = input.Position - dragStart
                 button.Position = UDim2.new(
                     startPos.X.Scale,
@@ -646,15 +640,17 @@ local Toggle = Tab:Toggle({
             end
         end)
 
-        -- CLICK TO SHOOT MURDERER
+        --------------------------------------------------
+        -- 💥 WORKING AUTO-SHOOT CODE
+        --------------------------------------------------
         button.MouseButton1Click:Connect(function()
 
-            -- Find murderer
+            -- FIND MURDERER
             local murderer = nil
             for _, p in pairs(Players:GetPlayers()) do
                 if p ~= Players.LocalPlayer then
-                    if p.Backpack:FindFirstChild("Knife") or
-                       (p.Character and p.Character:FindFirstChild("Knife")) then
+                    if p.Backpack:FindFirstChild("Knife")
+                    or (p.Character and p.Character:FindFirstChild("Knife")) then
                         murderer = p
                         break
                     end
@@ -671,16 +667,35 @@ local Toggle = Tab:Toggle({
                 return
             end
 
-            local gun = Players.LocalPlayer.Character:FindFirstChild("Gun")
-            if not gun then return end
+            -- FIND YOUR GUN
+            local char = Players.LocalPlayer.Character
+            if not char then return end
+            local gun = char:FindFirstChild("Gun")
+            if not gun then
+                WindUI:Notify({
+                    Title = "No Gun!",
+                    Content = "You must be Sheriff.",
+                    Duration = 3,
+                    Icon = "x"
+                })
+                return
+            end
 
-            local shootRemote = gun:WaitForChild("GunLocal"):WaitForChild("Shoot")
-            shootRemote:FireServer(murderer.Character.HumanoidRootPart.Position)
+            -- REAL WORKING MM2 SHOOT REMOTE
+            local ShootRemote = ReplicatedStorage
+                :WaitForChild("Remotes")
+                :WaitForChild("Gameplay")
+                :WaitForChild("Shoot")
+
+            ShootRemote:FireServer({
+                AimPosition = murderer.Character.HumanoidRootPart.Position,
+                MouseHit  = murderer.Character.HumanoidRootPart.Position,
+                Gun = gun
+            })
         end)
 
-    end -- closes Callback = function
-}) -- closes Tab:Toggle
-
+    end
+})
 
 local Section = Window:Section({
 	Title = "Farms",
