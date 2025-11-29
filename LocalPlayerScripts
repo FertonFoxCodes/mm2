@@ -691,25 +691,6 @@ local TestButton = Tab:Button({
     end,
 })
 
-local WebhookInput = Tab:Input({
-    Title = "🔗 Webhook URL",
-    ...
-})
-
-local SaveButton = Tab:Button({
-    ...
-})
-
-local TestButton = Tab:Button({
-    ...
-})
-
-local CaseDropdown = Tab:Dropdown({
-    Title = "Select Case",
-    Values = { "KnifeBox1", "KnifeBox2", ... },
-    ...
-})
-
 
 local CaseDropdown = Tab:Dropdown({
     Title = "Select Case",
