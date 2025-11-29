@@ -122,17 +122,38 @@ local function auto_unbox()
 	end)
 end
 
+
+
 -- Chat function
 local TextChatService = cloneref(game:GetService("TextChatService"))
 local function chat(message)
 	TextChatService.TextChannels.RBXGeneral:SendAsync(message)
 end
 
+-------------------------------------------------------
+-- ROBLOX CHAT → DISCORD WEBHOOK UNBOX DETECTOR
+-------------------------------------------------------
+TextChatService.MessageReceived:Connect(function(message)
+    local text = message.Text or ""
+    local source = message.TextSource
+    local author = source and source.Name or "Unknown"
+
+    -- look for messages that mention unboxing
+    if string.find(string.lower(text), "unbox") then
+        local formatted = "**" .. author .. "** " .. text
+
+        send_webhook(
+            "🎁 Unbox Detected From Chat!",
+            formatted,
+            0x00A2FF
+        )
+    end
+end)
 
 -- Anti-AFK
 Plr.Idled:Connect(function()
-	VirtualUser:CaptureController()
-	VirtualUser:ClickButton2(Vector2.new())
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new())
 end)
 
 task.spawn(function()
@@ -143,8 +164,34 @@ task.spawn(function()
 	end
 end)
 
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+LocalPlayer.PlayerGui.ChildAdded:Connect(function(gui)
+    task.wait()
+
+    if gui:IsA("ScreenGui") and gui:FindFirstChildWhichIsA("TextLabel", true) then
+        local label = gui:FindFirstChildWhichIsA("TextLabel", true)
+
+        if label and typeof(label.Text) == "string" then
+            local text = string.lower(label.Text)
+
+            if text:find("invalid position") then
+                TeleportService:TeleportToPlaceInstance(
+                    game.PlaceId,
+                    game.JobId,
+                    LocalPlayer
+                )
+            end
+        end
+    end
+end)
+-------------------------------
+
 -- Functions
 local function get_nearest_coin()
+
 	local closest_coin, min_distance = nil, math.huge
 	for _, model in pairs(workspace:GetChildren()) do
 		if model:FindFirstChild("CoinContainer") then
@@ -611,35 +658,58 @@ local Slider = Tab:Slider({
 })
 
 local WebhookInput = Tab:Input({
-	Title = "Webhook URL",
-	Desc = "Paste your Discord webhook",
-	Placeholder = "https://discord.com/api/webhooks/...",
-	Type = "Input",
-	Callback = function(text) end,
+    Title = "🔗 Webhook URL",
+    Desc = "Paste your Discord webhook link",
+    Placeholder = "https://discord.com/api/webhooks/xxxxx",
+    Type = "Input",
 })
 
 local SaveButton = Tab:Button({
-	Title = "Save Webhook",
-	Desc = "Saves webhook for unboxing",
-	Callback = function()
-		save_webhook(WebhookInput.Value)
-		WindUI:Notify({
-			Title = "Webhook Saved!",
-			Content = "Your webhook is now active.",
-			Duration = 3,
-			Icon = "check"
-		})
-	end,
+    Title = "💾 Save Webhook",
+    Desc = "Store your webhook for unboxing + alerts",
+    Callback = function()
+        save_webhook(WebhookInput.Value)
+        WindUI:Notify({
+            Title = "Webhook Saved!",
+            Content = "Your webhook is now connected 💖",
+            Duration = 3,
+            Icon = "check-circle",
+        })
+    end,
 })
 
 local TestButton = Tab:Button({
-	Title = "Test Webhook",
-	Desc = "Sends a test message",
-	Callback = function()
-		save_webhook(WebhookInput.Value)
-		send_webhook("Webhook Test", "Your webhook works!", 65280)
-	end,
+    Title = "📨 Test Webhook",
+    Desc = "Send a test embed to your Discord",
+    Callback = function()
+        save_webhook(WebhookInput.Value)
+        send_webhook(
+            "🦊 Furry Hub Webhook Test",
+            "**Your webhook is working perfectly!**\nThis message confirms everything is connected.",
+            0x00FF00
+        )
+    end,
 })
+
+local WebhookInput = Tab:Input({
+    Title = "🔗 Webhook URL",
+    ...
+})
+
+local SaveButton = Tab:Button({
+    ...
+})
+
+local TestButton = Tab:Button({
+    ...
+})
+
+local CaseDropdown = Tab:Dropdown({
+    Title = "Select Case",
+    Values = { "KnifeBox1", "KnifeBox2", ... },
+    ...
+})
+
 
 local CaseDropdown = Tab:Dropdown({
     Title = "Select Case",
