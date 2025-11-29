@@ -36,8 +36,10 @@ local HttpService = game:GetService("HttpService")
 local WEBHOOK_URL = nil
 local cases_opened = 0
 local auto_unbox_enabled = false
-local ShopRemotes = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Shop")
-local BoxController = ShopRemotes:WaitForChild("BoxController")
+
+local RemotesFolder = ReplicatedStorage:WaitForChild("Remotes", 10)
+local ShopRemotes = RemotesFolder:WaitForChild("Shop", 10)
+local BoxController = ShopRemotes:WaitForChild("BoxController", 10)
 
 
 local ALL_BOXES = {
