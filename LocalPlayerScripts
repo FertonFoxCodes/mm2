@@ -34,6 +34,7 @@ local WEBHOOK_URL = nil
 local cases_opened = 0
 local auto_unbox_enabled = false
 local ShopRemotes = ReplicatedStorage.Remotes:WaitForChild("Shop")
+local selected_case = "KnifeBox1"
 
 -- Save webhook
 local function save_webhook(url)
@@ -96,7 +97,7 @@ local function auto_unbox()
 
 			-- NEW WORKING REMOTE
             local Unbox = ReplicatedStorage.Remotes.Shop:WaitForChild("UnboxItem")
-			local result = Unbox:InvokeServer("KnifeBox1")
+			local result = Unbox:InvokeServer(selected_case)
 
 			if result then
 				cases_opened += 1
@@ -640,6 +641,14 @@ local TestButton = Tab:Button({
 	end,
 })
 
+local CaseDropdown = Tab:Dropdown({
+    Title = "Select Case",
+    Values = { "KnifeBox1", "KnifeBox2", "KnifeBox3", "KnifeBox4", "GunBox1", "HalloweenBox1", "ChristmasBox1" },
+    Value = "KnifeBox1",
+    Callback = function(option)
+        selected_case = option
+    end,
+})
 
 local Toggle = Tab:Toggle({
 	Title = "Auto Unbox",
