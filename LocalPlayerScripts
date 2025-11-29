@@ -29,11 +29,102 @@ local total_collected = 0
 local auto_farm_speed = 15
 local autofarm_enabled = false
 
+local HttpService = game:GetService("HttpService")
+local WEBHOOK_URL = nil
+local cases_opened = 0
+local auto_unbox_enabled = false
+local ShopRemotes = ReplicatedStorage.Remotes:WaitForChild("Shop")
+
+-- Save webhook
+local function save_webhook(url)
+	WEBHOOK_URL = url
+	if writefile then
+		writefile("furryhub_webhook.txt", url)
+	end
+end
+
+-- Load webhook
+if isfile and isfile("furryhub_webhook.txt") then
+	WEBHOOK_URL = readfile("furryhub_webhook.txt")
+end
+
+local function send_webhook(title, description, color)
+	if not WEBHOOK_URL or WEBHOOK_URL == "" then return end
+
+	local data = {
+		["username"] = "Furry Hub | Unboxing",
+		["embeds"] = {{
+			["title"] = title,
+			["description"] = description,
+			["color"] = color
+		}}
+	}
+
+	request({
+		Url = WEBHOOK_URL,
+		Method = "POST",
+		Headers = {["Content-Type"] = "application/json"},
+		Body = HttpService:JSONEncode(data)
+	})
+end
+
+local function rarity_color(r)
+	local map = {
+		Common = 65793,
+		Uncommon = 65280,
+		Rare = 255,
+		Legendary = 16711935,
+		Godly = 16776960,
+		Ancient = 16711680
+	}
+	return map[r] or 16777215
+end
+
+local function auto_unbox()
+	task.spawn(function()
+		while auto_unbox_enabled do
+			if not WEBHOOK_URL or WEBHOOK_URL == "" then
+				WindUI:Notify({
+					Title = "Webhook Needed!",
+					Content = "Enter your webhook first!",
+					Duration = 3,
+					Icon = "alert-octagon",
+				})
+				auto_unbox_enabled = false
+				return
+			end
+
+			local result = ShopRemotes.BoxController:InvokeServer("KnifeBox1")
+
+			if result then
+				cases_opened += 1
+				send_webhook(
+					"🎁 New Unbox!",
+					"**Item:** " .. tostring(result.Item) .. 
+					"\n**Rarity:** " .. tostring(result.Rarity) ..
+					"\n**Cases Opened:** " .. cases_opened,
+					rarity_color(result.Rarity)
+				)
+
+				WindUI:Notify({
+					Title = "Unboxed: " .. tostring(result.Item),
+					Content = "Rarity: " .. tostring(result.Rarity),
+					Duration = 4,
+					Icon = "gift"
+				})
+			end
+
+			task.wait(3)
+		end
+	end)
+end
+
 -- Chat function
 local TextChatService = cloneref(game:GetService("TextChatService"))
 local function chat(message)
 	TextChatService.TextChannels.RBXGeneral:SendAsync(message)
 end
+
 
 -- Anti-AFK
 Plr.Idled:Connect(function()
@@ -515,6 +606,50 @@ local Slider = Tab:Slider({
 		auto_farm_speed = value
 	end,
 })
+
+local WebhookInput = Tab:Input({
+	Title = "Webhook URL",
+	Desc = "Paste your Discord webhook",
+	Placeholder = "https://discord.com/api/webhooks/...",
+	Type = "Input",
+	Callback = function(text) end,
+})
+
+local SaveButton = Tab:Button({
+	Title = "Save Webhook",
+	Desc = "Saves webhook for unboxing",
+	Callback = function()
+		save_webhook(WebhookInput.Value)
+		WindUI:Notify({
+			Title = "Webhook Saved!",
+			Content = "Your webhook is now active.",
+			Duration = 3,
+			Icon = "check"
+		})
+	end,
+})
+
+local TestButton = Tab:Button({
+	Title = "Test Webhook",
+	Desc = "Sends a test message",
+	Callback = function()
+		save_webhook(WebhookInput.Value)
+		send_webhook("Webhook Test", "Your webhook works!", 65280)
+	end,
+})
+
+
+local Toggle = Tab:Toggle({
+	Title = "Auto Unbox",
+	Desc = "Automatically unboxes cases + logs to webhook",
+	Icon = "gift",
+	Default = false,
+	Callback = function(state)
+		auto_unbox_enabled = state
+		if state then auto_unbox() end
+	end,
+})
+
 
 local Tab = Section:Tab({
 	Title = "Autofarm",
