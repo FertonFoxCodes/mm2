@@ -739,8 +739,8 @@ Tab:Divider()
 
 local Dropdown = Tab:Dropdown({
 	Title = "Farm Type",
-	Values = { "Coin", "Egg", "Candy", "Snow Token" },
-	Value = "Coin",
+	Values = { "Coin", "Egg", "Candy", "Snow Tokens" },
+	Value = "Snow Tokens",
 	Callback = function(option)
 		ToFarm = option
 	end,
