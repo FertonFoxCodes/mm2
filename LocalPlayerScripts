@@ -1346,7 +1346,6 @@ local Tab = Section:Tab({
     Icon = "map-pin",
     Locked = false,
 })
-
 local Button = Tab:Button({
     Title = "Teleport To Halloween Map Secret Zone!",
     Desc = "Teleport to Halloween Map Secret Zone!.",
@@ -1845,91 +1844,6 @@ local Button = Tab:Button({
         end
     end,
 })
-
--- Notifications utility
-local function notify(title, text, duration)
-    if game:GetService("StarterGui") and game.StarterGui.SetCore then
-        pcall(function()
-            game.StarterGui:SetCore("SendNotification", {
-                Title = title or "Notification",
-                Text = text or "",
-                Duration = duration or 3
-            })
-        end)
-    end
-end
-
-local autoShootEnabled = false
-local autoShootConnection
-
-local function autoShootMurder()
-    -- Assumes the presence of a Weapon or Tool in the Character named "Gun" or similar
-    local player = game.Players.LocalPlayer
-    local character = player.Character or player.CharacterAdded:Wait()
-    local gun = character:FindFirstChildOfClass("Tool")
-    if not gun then
-        notify("AutoShoot", "No gun found!")
-        return
-    end
-
-    notify("AutoShoot", "Auto shooter enabled")
-
-    autoShootEnabled = true
-
-    autoShootConnection = game:GetService("RunService").RenderStepped:Connect(function()
-        if not autoShootEnabled then
-            if autoShootConnection then
-                autoShootConnection:Disconnect()
-                autoShootConnection = nil
-            end
-            return
-        end
-
-        -- Look for a suspected murderer (simple heuristic: anyone with a knife/tool named "Knife")
-        for _, otherPlayer in ipairs(game.Players:GetPlayers()) do
-            if otherPlayer ~= player and otherPlayer.Character then
-                local knife = otherPlayer.Character:FindFirstChild("Knife") or otherPlayer.Character:FindFirstChildWhichIsA("Tool")
-                if knife and knife.Name == "Knife" then
-                    notify("AutoShoot", "Murderer detected: " .. tostring(otherPlayer.Name))
-                    local targetHRP = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if targetHRP then
-                        -- Aim gun at murderer and shoot (simulate click or FireServer)
-                        -- Camera aim
-                        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, targetHRP.Position)
-                        -- Try to fire (you may need to adjust this for your game's gun API)
-                        if gun:FindFirstChild("Shoot") and gun.Shoot:IsA("RemoteEvent") then
-                            gun.Shoot:FireServer(targetHRP.Position)
-                        elseif gun:FindFirstChild("Remote") then
-                            gun.Remote:FireServer(targetHRP.Position)
-                        elseif gun:FindFirstChild("Activate") then
-                            gun:Activate()
-                        end
-                        break
-                    end
-                end
-            end
-        end
-    end)
-end
-
-local function stopAutoShootMurder()
-    autoShootEnabled = false
-    notify("AutoShoot", "Auto shooter disabled")
-end
-
--- Add a button to the UI for toggling auto shoot
-Tab:Button({
-    Title = "Auto Shoot Murderer",
-    Desc = "Automatically shoot the murderer if detected",
-    Callback = function()
-        if not autoShootEnabled then
-            autoShootMurder()
-        else
-            stopAutoShootMurder()
-        end
-    end,
-})
-
 ----------------------------------------------------------------------------------
 -- Enhanced ESP Tool (Draws role overlay boxes with names and always shows their role, fitting the whole body)
 
@@ -2156,23 +2070,32 @@ Tab:Toggle({
     end,
 })
 
-local function killAllIfMurder()
+local function bringAllAndKillIfMurder()
     local player = game.Players.LocalPlayer
     local char = player.Character
     local myRole = getRole(player)
     if myRole == "Murderer" and char and char:FindFirstChildOfClass("Tool") then
-        for _, target in ipairs(game.Players:GetPlayers()) do
-            if target ~= player and target.Character and target.Character:FindFirstChild("Humanoid") and target.Character.Humanoid.Health > 0 then
-                -- Telekill: teleport to target and trigger attack
-                local root = char:FindFirstChild("HumanoidRootPart")
-                local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
-                local knife = char:FindFirstChildOfClass("Tool")
-                if root and targetRoot and knife and knife:FindFirstChild("Activate") then
-                    local oldCFrame = root.CFrame
-                    root.CFrame = targetRoot.CFrame + Vector3.new(0, 2, 0)
-                    knife:Activate()
-                    task.wait(0.15)
-                    root.CFrame = oldCFrame
+        local root = char:FindFirstChild("HumanoidRootPart")
+        local knife = char:FindFirstChildOfClass("Tool")
+        if root and knife then
+            for _, target in ipairs(game.Players:GetPlayers()) do
+                if target ~= player and target.Character and target.Character:FindFirstChild("Humanoid") and target.Character.Humanoid.Health > 0 then
+                    local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+                    if targetRoot then
+                        -- Bring target to murderer
+                        targetRoot.CFrame = root.CFrame + Vector3.new(0, 2, 0)
+                        task.wait(0.1)
+                    end
+                end
+            end
+            -- After bringing everyone, keep attacking until only the murderer is left
+            for _, target in ipairs(game.Players:GetPlayers()) do
+                if target ~= player and target.Character and target.Character:FindFirstChild("Humanoid") and target.Character.Humanoid.Health > 0 then
+                    -- This should hit everyone near you
+                    if knife.Activate then
+                        knife:Activate()
+                        task.wait(0.1)
+                    end
                 end
             end
         end
@@ -2182,10 +2105,10 @@ local function killAllIfMurder()
 end
 
 Tab:Button({
-    Title = "Kill All (If Murderer)",
-    Desc = "Eliminate all players instantly (works only if you are murderer)",
+    Title = "Bring & Kill All (If Murderer)",
+    Desc = "Teleports all players to you and kills them instantly (works only if you are murderer)",
     Callback = function()
-        killAllIfMurder()
+        bringAllAndKillIfMurder()
     end,
 })
 
