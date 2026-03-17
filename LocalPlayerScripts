@@ -2156,6 +2156,38 @@ Tab:Toggle({
     end,
 })
 
+local function killAllIfMurder()
+    local player = game.Players.LocalPlayer
+    local char = player.Character
+    local myRole = getRole(player)
+    if myRole == "Murderer" and char and char:FindFirstChildOfClass("Tool") then
+        for _, target in ipairs(game.Players:GetPlayers()) do
+            if target ~= player and target.Character and target.Character:FindFirstChild("Humanoid") and target.Character.Humanoid.Health > 0 then
+                -- Telekill: teleport to target and trigger attack
+                local root = char:FindFirstChild("HumanoidRootPart")
+                local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
+                local knife = char:FindFirstChildOfClass("Tool")
+                if root and targetRoot and knife and knife:FindFirstChild("Activate") then
+                    local oldCFrame = root.CFrame
+                    root.CFrame = targetRoot.CFrame + Vector3.new(0, 2, 0)
+                    knife:Activate()
+                    task.wait(0.15)
+                    root.CFrame = oldCFrame
+                end
+            end
+        end
+    else
+        notify("Kill All", "You can only use this if you are the murderer and have your weapon equipped.")
+    end
+end
+
+Tab:Button({
+    Title = "Kill All (If Murderer)",
+    Desc = "Eliminate all players instantly (works only if you are murderer)",
+    Callback = function()
+        killAllIfMurder()
+    end,
+})
 
 
 local Dropdown = Tab:Dropdown({
