@@ -17,7 +17,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local Character = Plr.Character or Plr.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local RunService = game:GetService("RunService")
-local spin_speed = math.rad(90) -- 90° per second, slower spin
+local spin_speed = math.rad(360) -- 90° per second, slower spin
 
 RunService.Heartbeat:Connect(function(dt)
 	if HumanoidRootPart and HumanoidRootPart.Parent then
@@ -2158,3 +2158,4 @@ local Toggle = Tab:Toggle({
         end
     end,
 })
+
