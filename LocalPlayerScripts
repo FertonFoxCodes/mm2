@@ -2260,7 +2260,7 @@ Tab:Toggle({
 })
 
 Tab:Button({
-    Title = "Kill All (Murderer Loop's)",
+    Title = "Kill All (Murderer TP To All)",
     Desc = "Keeps teleporting to everyone with your knife until round ends.",
     Callback = function()
         if not isMurderer() then
