@@ -16,6 +16,14 @@ local VirtualUser = game:GetService("VirtualUser")
 
 local Character = Plr.Character or Plr.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+local RunService = game:GetService("RunService")
+local spin_speed = math.rad(90) -- 90° per second, slower spin
+
+RunService.Heartbeat:Connect(function(dt)
+	if HumanoidRootPart and HumanoidRootPart.Parent then
+		HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.Angles(0, spin_speed * dt, 0)
+	end
+end)
 
 local CoinCollected = ReplicatedStorage.Remotes.Gameplay:WaitForChild("CoinCollected")
 local RoundStart = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("RoundStart")
