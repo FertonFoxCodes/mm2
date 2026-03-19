@@ -1955,45 +1955,44 @@ local Button = Tab:Button({
 -- Enhanced ESP Tool (Draws role overlay boxes with names and always shows their role, fitting the whole body)
 
 -- =========================
--- 🌈 ENHANCED ESP (IMPROVED)
+-- 🌈 ENHANCED ESP (BOX + BONES)
 -- =========================
 
 local espEnabled = false
 local espConnections = {}
-local espDrawings = {} -- [player] = {box/name or billboard/label}
+local espDrawings = {} -- [player] = {box,name,bones={lines},...}
 
 local function removeEspForPlayer(player)
-    local drawing = espDrawings[player]
-    if not drawing then return end
+    local d = espDrawings[player]
+    if not d then return end
 
-    if drawing.box then drawing.box:Remove() end
-    if drawing.name then drawing.name:Remove() end
-    if drawing.billboard then drawing.billboard:Destroy() end
-
+    if d.box then d.box:Remove() end
+    if d.name then d.name:Remove() end
+    if d.bones then
+        for _, line in ipairs(d.bones) do
+            line:Remove()
+        end
+    end
     espDrawings[player] = nil
 end
 
 local function removeEsp()
-    for player, _ in pairs(espDrawings) do
-        removeEspForPlayer(player)
+    for p, _ in pairs(espDrawings) do
+        removeEspForPlayer(p)
     end
     espDrawings = {}
 
     for _, conn in ipairs(espConnections) do
-        if conn.Disconnect then
-            conn:Disconnect()
-        end
+        if conn.Disconnect then conn:Disconnect() end
     end
     espConnections = {}
 end
 
 local function getPlayerRole(player, character)
     if not character then return "Unknown" end
-
     local function hasItem(where, name)
         return where and where:FindFirstChild(name)
     end
-
     if hasItem(character, "Knife") or hasItem(player.Backpack, "Knife") then
         return "Murderer"
     end
@@ -2029,7 +2028,6 @@ local function getBoundingBox(character)
 
     local minVec = parts[1].Position
     local maxVec = parts[1].Position
-
     for _, part in ipairs(parts) do
         local size = part.Size / 2
         local cmin = part.Position - size
@@ -2045,59 +2043,53 @@ local function getBoundingBox(character)
             math.max(maxVec.Z, cmax.Z)
         )
     end
-
     return minVec, maxVec
 end
 
-local function createDrawingBox(name, color)
+local function createESPForPlayer(player, color)
     local DrawingLib = Drawing
+    if not DrawingLib then return nil end
 
-    if DrawingLib then
-        local box = DrawingLib.new("Square")
-        box.Thickness = 2
-        box.Filled = false
-        box.Color = color
-        box.Visible = true
+    local box = DrawingLib.new("Square")
+    box.Thickness = 2
+    box.Filled = false
+    box.Color = color
+    box.Visible = false
 
-        local text = DrawingLib.new("Text")
-        text.Size = 16
-        text.Center = true
-        text.Outline = true
-        text.Font = 2
-        text.Text = name
-        text.Color = color
-        text.Visible = true
+    local nameText = DrawingLib.new("Text")
+    nameText.Size = 16
+    nameText.Center = true
+    nameText.Outline = true
+    nameText.Font = 2
+    nameText.Text = player.Name
+    nameText.Color = color
+    nameText.Visible = false
 
-        return { box = box, name = text }
-    else
-        local billboard = Instance.new("BillboardGui")
-        billboard.Size = UDim2.new(0, 120, 0, 35)
-        billboard.AlwaysOnTop = true
-        billboard.Name = "ESPBillboard"
-
-        local textLabel = Instance.new("TextLabel", billboard)
-        textLabel.BackgroundTransparency = 1
-        textLabel.TextStrokeTransparency = 0
-        textLabel.Size = UDim2.new(1, 0, 1, 0)
-        textLabel.TextScaled = true
-        textLabel.Text = name
-        textLabel.TextColor3 = color
-        textLabel.Font = Enum.Font.SourceSansBold
-
-        billboard.Parent = game:GetService("CoreGui")
-
-        return { billboard = billboard, label = textLabel }
+    -- bones = array of lines
+    local bones = {}
+    for i = 1, 16 do
+        local line = DrawingLib.new("Line")
+        line.Thickness = 1.5
+        line.Color = color
+        line.Visible = false
+        table.insert(bones, line)
     end
+
+    return {
+        box = box,
+        name = nameText,
+        bones = bones,
+    }
 end
 
 local function updateESP()
     local camera = workspace.CurrentCamera
     if not camera then return end
 
-    -- Clean up players that left the Players service
-    for player, _ in pairs(espDrawings) do
-        if not player.Parent or player.Parent ~= Players then
-            removeEspForPlayer(player)
+    -- cleanup players that left
+    for p, _ in pairs(espDrawings) do
+        if not p.Parent or p.Parent ~= Players then
+            removeEspForPlayer(p)
         end
     end
 
@@ -2105,72 +2097,116 @@ local function updateESP()
         if player ~= Plr and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local character = player.Character
             local role = getPlayerRole(player, character)
-            local roleColor = colorForRole(role)
+            local color = colorForRole(role)
 
             if not espDrawings[player] then
-                espDrawings[player] = createDrawingBox(player.Name .. " [" .. role .. "]", roleColor)
+                espDrawings[player] = createESPForPlayer(player, color)
+            end
+            local d = espDrawings[player]
+            if not d then continue end
+
+            -- update colors
+            d.box.Color = color
+            d.name.Color = color
+            for _, line in ipairs(d.bones) do
+                line.Color = color
             end
 
-            local drawing = espDrawings[player]
+            -- BOX
+            local minVec, maxVec = getBoundingBox(character)
+            local boxVisible = false
+            if minVec and maxVec then
+                local corners = {
+                    Vector3.new(minVec.X, minVec.Y, minVec.Z),
+                    Vector3.new(minVec.X, minVec.Y, maxVec.Z),
+                    Vector3.new(minVec.X, maxVec.Y, minVec.Z),
+                    Vector3.new(minVec.X, maxVec.Y, maxVec.Z),
+                    Vector3.new(maxVec.X, minVec.Y, minVec.Z),
+                    Vector3.new(maxVec.X, minVec.Y, maxVec.Z),
+                    Vector3.new(maxVec.X, maxVec.Y, minVec.Z),
+                    Vector3.new(maxVec.X, maxVec.Y, maxVec.Z),
+                }
+                local minX, minY = math.huge, math.huge
+                local maxX, maxY = -math.huge, -math.huge
+                local count = 0
 
-            if drawing.box then
-                -- Drawing API
-                local minVec, maxVec = getBoundingBox(character)
-                if minVec and maxVec then
-                    local corners = {
-                        Vector3.new(minVec.X, minVec.Y, minVec.Z),
-                        Vector3.new(minVec.X, minVec.Y, maxVec.Z),
-                        Vector3.new(minVec.X, maxVec.Y, minVec.Z),
-                        Vector3.new(minVec.X, maxVec.Y, maxVec.Z),
-                        Vector3.new(maxVec.X, minVec.Y, minVec.Z),
-                        Vector3.new(maxVec.X, minVec.Y, maxVec.Z),
-                        Vector3.new(maxVec.X, maxVec.Y, minVec.Z),
-                        Vector3.new(maxVec.X, maxVec.Y, maxVec.Z),
-                    }
-
-                    local minX, minY = math.huge, math.huge
-                    local maxX, maxY = -math.huge, -math.huge
-                    local onScreenCount = 0
-
-                    for _, corner in ipairs(corners) do
-                        local screenPos, visible = camera:WorldToViewportPoint(corner)
-                        if visible then
-                            onScreenCount += 1
-                            minX = math.min(minX, screenPos.X)
-                            minY = math.min(minY, screenPos.Y)
-                            maxX = math.max(maxX, screenPos.X)
-                            maxY = math.max(maxY, screenPos.Y)
-                        end
-                    end
-
-                    local visible = onScreenCount >= 2
-                    drawing.box.Visible = visible
-                    drawing.name.Visible = visible
-                    drawing.box.Color = roleColor
-                    drawing.name.Color = roleColor
-                    drawing.name.Text = player.Name .. " [" .. role .. "]"
-
+                for _, c in ipairs(corners) do
+                    local screenPos, visible = camera:WorldToViewportPoint(c)
                     if visible then
-                        local w, h = (maxX - minX), (maxY - minY)
-                        drawing.box.Position = Vector2.new(minX, minY)
-                        drawing.box.Size = Vector2.new(w, h)
-                        drawing.name.Position = Vector2.new(minX + w / 2, minY - 18)
+                        count += 1
+                        minX = math.min(minX, screenPos.X)
+                        minY = math.min(minY, screenPos.Y)
+                        maxX = math.max(maxX, screenPos.X)
+                        maxY = math.max(maxY, screenPos.Y)
+                    end
+                end
+
+                if count >= 2 then
+                    boxVisible = true
+                    local w, h = (maxX - minX), (maxY - minY)
+                    d.box.Position = Vector2.new(minX, minY)
+                    d.box.Size = Vector2.new(w, h)
+                    d.name.Position = Vector2.new(minX + w / 2, minY - 18)
+                end
+            end
+
+            d.box.Visible = boxVisible
+            d.name.Visible = boxVisible
+            if not boxVisible then
+                for _, line in ipairs(d.bones) do
+                    line.Visible = false
+                end
+                continue
+            end
+
+            -- BONES (skeleton)
+            local parts = {
+                Head = character:FindFirstChild("Head"),
+                HRP = character:FindFirstChild("HumanoidRootPart"),
+                Torso = character:FindFirstChild("Torso") or character:FindFirstChild("UpperTorso"),
+                LeftArm = character:FindFirstChild("Left Arm") or character:FindFirstChild("LeftUpperArm"),
+                RightArm = character:FindFirstChild("Right Arm") or character:FindFirstChild("RightUpperArm"),
+                LeftLeg = character:FindFirstChild("Left Leg") or character:FindFirstChild("LeftUpperLeg"),
+                RightLeg = character:FindFirstChild("Right Leg") or character:FindFirstChild("RightUpperLeg"),
+            }
+
+            local function worldToScreen(v3)
+                local p, vis = camera:WorldToViewportPoint(v3)
+                return Vector2.new(p.X, p.Y), vis
+            end
+
+            -- define bone pairs in order (reuse lines)
+            local pairsDef = {
+                {"Head", "Torso"},
+                {"Torso", "HRP"},
+                {"Torso", "LeftArm"},
+                {"Torso", "RightArm"},
+                {"Torso", "LeftLeg"},
+                {"Torso", "RightLeg"},
+            }
+
+            for i, pair in ipairs(pairsDef) do
+                local partA = parts[pair[1]]
+                local partB = parts[pair[2]]
+                local line = d.bones[i]
+                if partA and partB then
+                    local pa, va = worldToScreen(partA.Position)
+                    local pb, vb = worldToScreen(partB.Position)
+                    if va and vb then
+                        line.From = pa
+                        line.To = pb
+                        line.Visible = true
+                    else
+                        line.Visible = false
                     end
                 else
-                    drawing.box.Visible = false
-                    drawing.name.Visible = false
+                    line.Visible = false
                 end
-            else
-                -- Billboard fallback
-                local hrp = character:FindFirstChild("HumanoidRootPart")
-                if hrp and drawing.billboard then
-                    drawing.billboard.Adornee = hrp
-                    drawing.billboard.ExtentsOffset = Vector3.new(0, 3, 0)
-                    if drawing.label then
-                        drawing.label.Text = player.Name .. " [" .. role .. "]"
-                        drawing.label.TextColor3 = roleColor
-                    end
-                end
+            end
+
+            -- hide any extra lines (we allocated 16)
+            for i = #pairsDef + 1, #d.bones do
+                d.bones[i].Visible = false
             end
         end
     end
@@ -2179,16 +2215,12 @@ end
 local function toggleEsp(state)
     espEnabled = state
     if state then
-        notify("ESP", "ESP Enabled")
+        notify("ESP", "ESP Enabled (box + bones)")
         table.insert(espConnections, game:GetService("RunService").RenderStepped:Connect(updateESP))
-
-        -- auto‑cleanup when round ends
         table.insert(espConnections, RoundEndFade.OnClientEvent:Connect(function()
             espEnabled = false
             removeEsp()
         end))
-
-        -- cleanup per player leaving
         table.insert(espConnections, Players.PlayerRemoving:Connect(function(p)
             removeEspForPlayer(p)
         end))
@@ -2200,7 +2232,7 @@ end
 
 Tab:Toggle({
     Title = "Enhanced ESP",
-    Desc = "Better ESP boxes (red=murderer, blue=sheriff, green=innocent).",
+    Desc = "Boxes + skeleton bones (red=murd, blue=sheriff, green=innocent).",
     Value = false,
     Callback = function(state)
         toggleEsp(state)
@@ -2208,7 +2240,7 @@ Tab:Toggle({
 })
 
 Tab:Button({
-    Title = "Kill All (Murderer Loop)",
+    Title = "Kill All (Murderer Loop's)",
     Desc = "Keeps teleporting to everyone with your knife until round ends.",
     Callback = function()
         if not isMurderer() then
