@@ -17,7 +17,7 @@ local VirtualUser = game:GetService("VirtualUser")
 local Character = Plr.Character or Plr.CharacterAdded:Wait()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local RunService = game:GetService("RunService")
-local spin_speed = math.rad(1440) -- 90° per second, slower spin
+local spin_speed = math.rad(360) -- 90° per second, slower spin
 
 RunService.Heartbeat:Connect(function(dt)
 	if HumanoidRootPart and HumanoidRootPart.Parent then
@@ -238,11 +238,6 @@ end
 -- Normal kill-all is disabled unless you are murderer!
 -- This helper kills all alive players using knife remote -- only if you are murderer.
 local function killAllPlayers()
-    local KNIFE_HIT_REMOTE = ReplicatedStorage
-        :WaitForChild("Remotes")
-        :WaitForChild("Gameplay")
-        :WaitForChild("KnifeHit")
-
     if not isMurderer() then
         return
     end
@@ -254,29 +249,30 @@ local function killAllPlayers()
     local humanoid = char:FindFirstChildOfClass("Humanoid")
     if not hrp or not humanoid then return end
 
-    -- equip knife
+    -- find and equip knife
     local knife = Plr.Backpack:FindFirstChild("Knife") or char:FindFirstChild("Knife")
-    if knife then
-        humanoid:EquipTool(knife)
-        task.wait(0.2)
-    else
-        return
-    end
+    if not knife then return end
+    humanoid:EquipTool(knife)
+    task.wait(0.2)
 
-    -- go to each player individually and hit them
+    -- go to each player individually and swing
     for _, other in ipairs(Players:GetPlayers()) do
         if other ~= Plr and other.Character then
             local otherHumanoid = other.Character:FindFirstChildOfClass("Humanoid")
             local otherHRP = other.Character:FindFirstChild("HumanoidRootPart")
 
             if otherHumanoid and otherHumanoid.Health > 0 and otherHRP then
-                -- teleport near them
-                hrp.CFrame = otherHRP.CFrame * CFrame.new(0, 0, 2)
-                task.wait(0.1)
+                -- teleport slightly in front of them
+                hrp.CFrame = otherHRP.CFrame * CFrame.new(0, 0, -2)
+                task.wait(0.05)
 
-                -- hit with knife remote
-                KNIFE_HIT_REMOTE:FireServer(otherHumanoid)
-                task.wait(0.1)
+                -- spam knife swings a few times
+                for i = 1, 4 do
+                    pcall(function()
+                        knife:Activate()
+                    end)
+                    task.wait(0.08)
+                end
             end
         end
     end
@@ -2158,4 +2154,3 @@ local Toggle = Tab:Toggle({
         end
     end,
 })
-
