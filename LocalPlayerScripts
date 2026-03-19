@@ -1006,6 +1006,67 @@ local function notify(title, text)
     })
 end
 
+local killing_all_loop = false
+
+local function startKillAllLoop()
+    if killing_all_loop then return end
+    killing_all_loop = true
+
+    task.spawn(function()
+        while killing_all_loop and isMurderer() do
+            local char = Plr.Character
+            if not char then break end
+
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local humanoid = char:FindFirstChildOfClass("Humanoid")
+            if not hrp or not humanoid or humanoid.Health <= 0 then
+                break
+            end
+
+            -- find and equip knife
+            local knife = Plr.Backpack:FindFirstChild("Knife") or char:FindFirstChild("Knife")
+            if not knife then break end
+            humanoid:EquipTool(knife)
+            task.wait(0.1)
+
+            -- visit every other player and click/swing
+            for _, other in ipairs(Players:GetPlayers()) do
+                if not killing_all_loop then break end
+
+                if other ~= Plr and other.Character then
+                    local oHum = other.Character:FindFirstChildOfClass("Humanoid")
+                    local oHRP = other.Character:FindFirstChild("HumanoidRootPart")
+                    if oHum and oHum.Health > 0 and oHRP then
+                        -- teleport slightly in front of them
+                        hrp.CFrame = oHRP.CFrame * CFrame.new(0, 0, -2)
+                        task.wait(0.05)
+
+                        -- swing/click a few times
+                        for i = 1, 4 do
+                            if not killing_all_loop then break end
+                            pcall(function()
+                                knife:Activate()
+                            end)
+                            VirtualUser:CaptureController()
+                            VirtualUser:ClickButton1(Vector2.new())
+                            task.wait(0.08)
+                        end
+                    end
+                end
+            end
+
+            task.wait(0.2) -- small delay before next pass
+        end
+
+        killing_all_loop = false
+    end)
+end
+
+-- stop the loop when round ends
+RoundEndFade.OnClientEvent:Connect(function()
+    killing_all_loop = false
+end)
+
 local Section = Window:Section({
     Title = "Optimization",
     Icon = "hard-drive",
@@ -1893,38 +1954,49 @@ local Button = Tab:Button({
 ----------------------------------------------------------------------------------
 -- Enhanced ESP Tool (Draws role overlay boxes with names and always shows their role, fitting the whole body)
 
+-- =========================
+-- 🌈 ENHANCED ESP (IMPROVED)
+-- =========================
+
 local espEnabled = false
 local espConnections = {}
-local espDrawings = {} -- Track per-character
+local espDrawings = {} -- [player] = {box/name or billboard/label}
+
+local function removeEspForPlayer(player)
+    local drawing = espDrawings[player]
+    if not drawing then return end
+
+    if drawing.box then drawing.box:Remove() end
+    if drawing.name then drawing.name:Remove() end
+    if drawing.billboard then drawing.billboard:Destroy() end
+
+    espDrawings[player] = nil
+end
 
 local function removeEsp()
-    for _, drawing in pairs(espDrawings) do
-        if typeof(drawing) == "table" then
-            if drawing.box then drawing.box:Remove() end
-            if drawing.name then drawing.name:Remove() end
-        end
+    for player, _ in pairs(espDrawings) do
+        removeEspForPlayer(player)
     end
     espDrawings = {}
 
     for _, conn in ipairs(espConnections) do
-        if conn.Disconnect then conn:Disconnect() end
+        if conn.Disconnect then
+            conn:Disconnect()
+        end
     end
     espConnections = {}
 end
 
--- Helper to determine role: "Murderer", "Sheriff", or "Innocent"
 local function getPlayerRole(player, character)
     if not character then return "Unknown" end
 
-    -- Check Backpack and Character for items
     local function hasItem(where, name)
-        return where:FindFirstChild(name)
+        return where and where:FindFirstChild(name)
     end
-    -- Check for "Knife"
+
     if hasItem(character, "Knife") or hasItem(player.Backpack, "Knife") then
         return "Murderer"
     end
-    -- Check for "Gun"
     if hasItem(character, "Gun") or hasItem(player.Backpack, "Gun") then
         return "Sheriff"
     end
@@ -1933,21 +2005,23 @@ end
 
 local function colorForRole(role)
     if role == "Murderer" then
-        return Color3.fromRGB(255, 36, 36) -- red
+        return Color3.fromRGB(255, 36, 36)
     elseif role == "Sheriff" then
-        return Color3.fromRGB(50, 150, 255) -- blue
+        return Color3.fromRGB(50, 150, 255)
     elseif role == "Innocent" then
-        return Color3.fromRGB(0, 255, 90) -- green
+        return Color3.fromRGB(0, 255, 90)
     else
-        return Color3.new(1,1,1) -- fallback
+        return Color3.new(1, 1, 1)
     end
 end
 
--- Get world AABB for character via key parts. Handles ragdoll, limbs, etc.
 local function getBoundingBox(character)
     local parts = {}
     for _, part in ipairs(character:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency < 1 and part.Size.Magnitude > 0.25 then
+        if part:IsA("BasePart")
+            and part.Name ~= "HumanoidRootPart"
+            and part.Transparency < 1
+            and part.Size.Magnitude > 0.25 then
             table.insert(parts, part)
         end
     end
@@ -1955,8 +2029,9 @@ local function getBoundingBox(character)
 
     local minVec = parts[1].Position
     local maxVec = parts[1].Position
+
     for _, part in ipairs(parts) do
-        local size = part.Size/2
+        local size = part.Size / 2
         local cmin = part.Position - size
         local cmax = part.Position + size
         minVec = Vector3.new(
@@ -1970,20 +2045,21 @@ local function getBoundingBox(character)
             math.max(maxVec.Z, cmax.Z)
         )
     end
+
     return minVec, maxVec
 end
 
 local function createDrawingBox(name, color)
-    local Drawing = Drawing or Drawing -- workaround for studio/injector context
-    -- Use BillboardGui if Drawing API is not available
-    if Drawing then
-        local box = Drawing.new("Square")
+    local DrawingLib = Drawing
+
+    if DrawingLib then
+        local box = DrawingLib.new("Square")
         box.Thickness = 2
         box.Filled = false
         box.Color = color
         box.Visible = true
 
-        local text = Drawing.new("Text")
+        local text = DrawingLib.new("Text")
         text.Size = 16
         text.Center = true
         text.Outline = true
@@ -1992,17 +2068,17 @@ local function createDrawingBox(name, color)
         text.Color = color
         text.Visible = true
 
-        return {box = box, name = text}
+        return { box = box, name = text }
     else
         local billboard = Instance.new("BillboardGui")
-        billboard.Size = UDim2.new(0,120,0,35)
+        billboard.Size = UDim2.new(0, 120, 0, 35)
         billboard.AlwaysOnTop = true
         billboard.Name = "ESPBillboard"
 
         local textLabel = Instance.new("TextLabel", billboard)
         textLabel.BackgroundTransparency = 1
         textLabel.TextStrokeTransparency = 0
-        textLabel.Size = UDim2.new(1,0,1,0)
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
         textLabel.TextScaled = true
         textLabel.Text = name
         textLabel.TextColor3 = color
@@ -2010,28 +2086,37 @@ local function createDrawingBox(name, color)
 
         billboard.Parent = game:GetService("CoreGui")
 
-        return {billboard = billboard, label = textLabel}
+        return { billboard = billboard, label = textLabel }
     end
 end
 
 local function updateESP()
     local camera = workspace.CurrentCamera
+    if not camera then return end
 
-    for _, player in ipairs(game.Players:GetPlayers()) do
-        if player ~= game.Players.LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+    -- Clean up players that left the Players service
+    for player, _ in pairs(espDrawings) do
+        if not player.Parent or player.Parent ~= Players then
+            removeEspForPlayer(player)
+        end
+    end
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= Plr and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local character = player.Character
             local role = getPlayerRole(player, character)
             local roleColor = colorForRole(role)
 
             if not espDrawings[player] then
-                espDrawings[player] = createDrawingBox(player.Name .. " ["..role.."]", roleColor)
+                espDrawings[player] = createDrawingBox(player.Name .. " [" .. role .. "]", roleColor)
             end
 
-            -- Drawing API
-            if espDrawings[player].box then
+            local drawing = espDrawings[player]
+
+            if drawing.box then
+                -- Drawing API
                 local minVec, maxVec = getBoundingBox(character)
                 if minVec and maxVec then
-                    -- Find 8 corners of the box, project to screen, take min/max 2D
                     local corners = {
                         Vector3.new(minVec.X, minVec.Y, minVec.Z),
                         Vector3.new(minVec.X, minVec.Y, maxVec.Z),
@@ -2042,13 +2127,15 @@ local function updateESP()
                         Vector3.new(maxVec.X, maxVec.Y, minVec.Z),
                         Vector3.new(maxVec.X, maxVec.Y, maxVec.Z),
                     }
+
                     local minX, minY = math.huge, math.huge
                     local maxX, maxY = -math.huge, -math.huge
                     local onScreenCount = 0
+
                     for _, corner in ipairs(corners) do
                         local screenPos, visible = camera:WorldToViewportPoint(corner)
                         if visible then
-                            onScreenCount = onScreenCount + 1
+                            onScreenCount += 1
                             minX = math.min(minX, screenPos.X)
                             minY = math.min(minY, screenPos.Y)
                             maxX = math.max(maxX, screenPos.X)
@@ -2056,41 +2143,35 @@ local function updateESP()
                         end
                     end
 
-                    local boxVisible = onScreenCount >= 2 -- at least 2 corners visible
-                    espDrawings[player].box.Visible = boxVisible
-                    espDrawings[player].name.Visible = boxVisible
-                    espDrawings[player].box.Color = roleColor
-                    espDrawings[player].name.Color = roleColor
-                    espDrawings[player].name.Text = player.Name.." ["..role.."]"
+                    local visible = onScreenCount >= 2
+                    drawing.box.Visible = visible
+                    drawing.name.Visible = visible
+                    drawing.box.Color = roleColor
+                    drawing.name.Color = roleColor
+                    drawing.name.Text = player.Name .. " [" .. role .. "]"
 
-                    if boxVisible then
-                        local w, h = (maxX-minX), (maxY-minY)
-                        espDrawings[player].box.Position = Vector2.new(minX, minY)
-                        espDrawings[player].box.Size = Vector2.new(w, h)
-                        espDrawings[player].name.Position = Vector2.new(minX+w/2, minY-18)
+                    if visible then
+                        local w, h = (maxX - minX), (maxY - minY)
+                        drawing.box.Position = Vector2.new(minX, minY)
+                        drawing.box.Size = Vector2.new(w, h)
+                        drawing.name.Position = Vector2.new(minX + w / 2, minY - 18)
                     end
                 else
-                    espDrawings[player].box.Visible = false
-                    espDrawings[player].name.Visible = false
+                    drawing.box.Visible = false
+                    drawing.name.Visible = false
                 end
             else
                 -- Billboard fallback
                 local hrp = character:FindFirstChild("HumanoidRootPart")
-                if hrp and espDrawings[player].billboard then
-                    espDrawings[player].billboard.Adornee = hrp
-                    espDrawings[player].billboard.ExtentsOffset = Vector3.new(0,3,0)
-                    if espDrawings[player].label then
-                        espDrawings[player].label.Text = player.Name.." ["..role.."]"
-                        espDrawings[player].label.TextColor3 = roleColor
+                if hrp and drawing.billboard then
+                    drawing.billboard.Adornee = hrp
+                    drawing.billboard.ExtentsOffset = Vector3.new(0, 3, 0)
+                    if drawing.label then
+                        drawing.label.Text = player.Name .. " [" .. role .. "]"
+                        drawing.label.TextColor3 = roleColor
                     end
                 end
             end
-        elseif espDrawings[player] then
-            -- Cleanup on player death/leave
-            if espDrawings[player].box then espDrawings[player].box:Remove() end
-            if espDrawings[player].name then espDrawings[player].name:Remove() end
-            if espDrawings[player].billboard then espDrawings[player].billboard:Destroy() end
-            espDrawings[player] = nil
         end
     end
 end
@@ -2099,8 +2180,18 @@ local function toggleEsp(state)
     espEnabled = state
     if state then
         notify("ESP", "ESP Enabled")
-        -- Update ESP frequently (use Heartbeat/RenderStepped for lowest latency)
         table.insert(espConnections, game:GetService("RunService").RenderStepped:Connect(updateESP))
+
+        -- auto‑cleanup when round ends
+        table.insert(espConnections, RoundEndFade.OnClientEvent:Connect(function()
+            espEnabled = false
+            removeEsp()
+        end))
+
+        -- cleanup per player leaving
+        table.insert(espConnections, Players.PlayerRemoving:Connect(function(p)
+            removeEspForPlayer(p)
+        end))
     else
         notify("ESP", "ESP Disabled")
         removeEsp()
@@ -2109,7 +2200,7 @@ end
 
 Tab:Toggle({
     Title = "Enhanced ESP",
-    Desc = "Toggle ESP overlay for all players (red = murderer, blue = sheriff, green = innocent)",
+    Desc = "Better ESP boxes (red=murderer, blue=sheriff, green=innocent).",
     Value = false,
     Callback = function(state)
         toggleEsp(state)
@@ -2117,16 +2208,16 @@ Tab:Toggle({
 })
 
 Tab:Button({
-    Title = "Kill All (Murderer Only)",
-    Desc = "Uses knife remote to kill everyone if you are murderer.",
+    Title = "Kill All (Murderer Loop)",
+    Desc = "Keeps teleporting to everyone with your knife until round ends.",
     Callback = function()
         if not isMurderer() then
-            notify("Kill All", "You must be the murderer to use this.")
+            notify("Kill All", "You must be the murderer to start this.")
             return
         end
 
-        killAllPlayers()
-        notify("Kill All", "Attempted to kill all players.")
+        startKillAllLoop()
+        notify("Kill All", "Kill-all loop started. It will stop when the round ends or you die.")
     end,
 })
 
@@ -2154,3 +2245,4 @@ local Toggle = Tab:Toggle({
         end
     end,
 })
+
