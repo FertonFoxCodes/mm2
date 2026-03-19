@@ -238,43 +238,60 @@ end
 -- Normal kill-all is disabled unless you are murderer!
 -- This helper kills all alive players using knife remote -- only if you are murderer.
 local function killAllPlayers()
-    if not isMurderer() then
-        return
-    end
+    if not isMurderer() then return end
 
-    local char = Plr.Character
-    if not char then return end
+    local maxCycles = 3 -- how many full passes over the server
+    for cycle = 1, maxCycles do
+        local char = Plr.Character
+        if not char then break end
 
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if not hrp or not humanoid then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not hrp or not humanoid or humanoid.Health <= 0 then break end
 
-    -- find and equip knife
-    local knife = Plr.Backpack:FindFirstChild("Knife") or char:FindFirstChild("Knife")
-    if not knife then return end
-    humanoid:EquipTool(knife)
-    task.wait(0.2)
+        -- (re)locate & equip knife every cycle
+        local knife = char:FindFirstChild("Knife") or Plr.Backpack:FindFirstChild("Knife")
+        if not knife then break end
+        humanoid:EquipTool(knife)
+        task.wait(0.15)
 
-    -- go to each player individually and swing
-    for _, other in ipairs(Players:GetPlayers()) do
-        if other ~= Plr and other.Character then
-            local otherHumanoid = other.Character:FindFirstChildOfClass("Humanoid")
-            local otherHRP = other.Character:FindFirstChild("HumanoidRootPart")
+        local anyTargetHit = false
 
-            if otherHumanoid and otherHumanoid.Health > 0 and otherHRP then
-                -- teleport slightly in front of them
-                hrp.CFrame = otherHRP.CFrame * CFrame.new(0, 0, -2)
-                task.wait(0.05)
+        for _, other in ipairs(Players:GetPlayers()) do
+            if other ~= Plr and other.Character then
+                local otherHumanoid = other.Character:FindFirstChildOfClass("Humanoid")
+                local otherHRP = other.Character:FindFirstChild("HumanoidRootPart")
 
-                -- spam knife swings a few times
-                for i = 1, 4 do
-                    pcall(function()
-                        knife:Activate()
-                    end)
-                    task.wait(0.08)
+                if otherHumanoid and otherHumanoid.Health > 0 and otherHRP then
+                    anyTargetHit = true
+
+                    -- sanity check: still alive & murderer before each TP
+                    if not isMurderer() or not char or not hrp or humanoid.Health <= 0 then
+                        return
+                    end
+
+                    -- teleport slightly in front of them
+                    hrp.CFrame = otherHRP.CFrame * CFrame.new(0, 0, -2)
+                    task.wait(0.05)
+
+                    -- swing multiple times
+                    for i = 1, 5 do
+                        if not isMurderer() or humanoid.Health <= 0 then return end
+                        pcall(function()
+                            knife:Activate()
+                        end)
+                        task.wait(0.08)
+                    end
                 end
             end
         end
+
+        -- if no valid targets this cycle, stop early
+        if not anyTargetHit then
+            break
+        end
+
+        task.wait(0.25)
     end
 end
 
@@ -321,27 +338,30 @@ end)
 
 -- Coin collection handler
 CoinCollected.OnClientEvent:Connect(function(coin_type, current, max)
-	if coin_type == ToFarm then
-		total_collected += 1
-		if current == max then
-			bag_full = true
-			tween_to(start_position, 2).Completed:Wait()
-			-- Only apply kill all (murderer) if enabled.
-			if murderer_auto_kill_enabled and isMurderer() then
-				killAllPlayers()
-				task.wait(2)
-				bag_full = false
-				return
-			end
-			-- Otherwise, just "die" to reset (like normal farm)
-			if Character:FindFirstChild("Humanoid") then
-				Character.Humanoid.Health = 0
-			end
-			task.wait(5)
-			bag_full = false
-		end
-	end
+    if coin_type ~= ToFarm then return end
+    total_collected += 1
+    if current ~= max then return end
+    bag_full = true
+    tween_to(start_position, 2).Completed:Wait()
+    -- Only apply kill-all if toggle is ON AND you are alive murderer
+    local hum = Character and Character:FindFirstChildOfClass("Humanoid")
+    if murderer_auto_kill_enabled
+        and isMurderer()
+        and hum
+        and hum.Health > 0 then
+        killAllPlayers()
+        task.wait(2)
+        bag_full = false
+        return
+    end
+    -- Otherwise, just "die" to reset (like normal farm)
+    if hum then
+        hum.Health = 0
+    end
+    task.wait(5)
+    bag_full = false
 end)
+
 
 -- =========================
 -- ⏱ DELAYED AUTOFARM START
@@ -2277,4 +2297,3 @@ local Toggle = Tab:Toggle({
         end
     end,
 })
-
