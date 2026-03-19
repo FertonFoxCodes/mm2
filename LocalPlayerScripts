@@ -238,25 +238,48 @@ end
 -- Normal kill-all is disabled unless you are murderer!
 -- This helper kills all alive players using knife remote -- only if you are murderer.
 local function killAllPlayers()
-	local KNIFE_HIT_REMOTE = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Gameplay"):WaitForChild("KnifeHit")
-	if not isMurderer() then
-		-- If not murderer, don't do anything!
-		return
-	end
-	-- Try to equip knife so you can kill
-	local knife = Plr.Backpack:FindFirstChild("Knife")
-	if knife and Plr.Character then
-		Plr.Character.Humanoid:EquipTool(knife)
-		task.wait(0.2)
-	end
-	for _, other in ipairs(Players:GetPlayers()) do
-		if other ~= Plr and other.Character and other.Character:FindFirstChild("Humanoid") then
-			local humanoid = other.Character.Humanoid
-			if humanoid.Health > 0 then
-				KNIFE_HIT_REMOTE:FireServer(humanoid)
-			end
-		end
-	end
+    local KNIFE_HIT_REMOTE = ReplicatedStorage
+        :WaitForChild("Remotes")
+        :WaitForChild("Gameplay")
+        :WaitForChild("KnifeHit")
+
+    if not isMurderer() then
+        return
+    end
+
+    local char = Plr.Character
+    if not char then return end
+
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not hrp or not humanoid then return end
+
+    -- equip knife
+    local knife = Plr.Backpack:FindFirstChild("Knife") or char:FindFirstChild("Knife")
+    if knife then
+        humanoid:EquipTool(knife)
+        task.wait(0.2)
+    else
+        return
+    end
+
+    -- go to each player individually and hit them
+    for _, other in ipairs(Players:GetPlayers()) do
+        if other ~= Plr and other.Character then
+            local otherHumanoid = other.Character:FindFirstChildOfClass("Humanoid")
+            local otherHRP = other.Character:FindFirstChild("HumanoidRootPart")
+
+            if otherHumanoid and otherHumanoid.Health > 0 and otherHRP then
+                -- teleport near them
+                hrp.CFrame = otherHRP.CFrame * CFrame.new(0, 0, 2)
+                task.wait(0.1)
+
+                -- hit with knife remote
+                KNIFE_HIT_REMOTE:FireServer(otherHumanoid)
+                task.wait(0.1)
+            end
+        end
+    end
 end
 
 local function start_farming_loop()
@@ -976,6 +999,15 @@ local murderer_auto_kill_toggle = Tab:Toggle({
 local function isMurderer()
     return (Plr.Backpack:FindFirstChild("Knife") ~= nil)
         or (Plr.Character and Plr.Character:FindFirstChild("Knife") ~= nil)
+end
+
+local function notify(title, text)
+    WindUI:Notify({
+        Title = title,
+        Content = text,
+        Duration = 3,
+        Icon = "info",
+    })
 end
 
 local Section = Window:Section({
@@ -1733,24 +1765,34 @@ local Tab = Window:Tab({
 
 -- FLING logic: Improved fling; attempts to force target into a stationary state before flinging
 
-local PlayerNames = {}
-for _, player in ipairs(game.Players:GetPlayers()) do
-    if player ~= game.Players.LocalPlayer then
-        table.insert(PlayerNames, player.Name)
-    end
-end
-
 local SelectedUser = nil
 
 local UserDropdown = Tab:Dropdown({
     Title = "Select player to fling",
     Desc = "Choose a player (not you)",
-    Values = PlayerNames,
+    Values = {},
     Value = nil,
     Callback = function(playerName)
         SelectedUser = playerName
     end,
 })
+
+local function RefreshFlingDropdown()
+    local names = {}
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if player ~= game.Players.LocalPlayer then
+            table.insert(names, player.Name)
+        end
+    end
+    UserDropdown:Refresh(names)
+end
+
+-- initial fill
+RefreshFlingDropdown()
+
+-- auto update when players join/leave
+game.Players.PlayerAdded:Connect(RefreshFlingDropdown)
+game.Players.PlayerRemoving:Connect(RefreshFlingDropdown)
 
 local Button = Tab:Button({
     Title = "Fling Selected Player",
@@ -2078,45 +2120,17 @@ Tab:Toggle({
     end,
 })
 
-local function bringAllAndKillIfMurder()
-    local player = game.Players.LocalPlayer
-    local char = player.Character
-    local myRole = getRole(player)
-    if myRole == "Murderer" and char and char:FindFirstChildOfClass("Tool") then
-        local root = char:FindFirstChild("HumanoidRootPart")
-        local knife = char:FindFirstChildOfClass("Tool")
-        if root and knife then
-            for _, target in ipairs(game.Players:GetPlayers()) do
-                if target ~= player and target.Character and target.Character:FindFirstChild("Humanoid") and target.Character.Humanoid.Health > 0 then
-                    local targetRoot = target.Character:FindFirstChild("HumanoidRootPart")
-                    if targetRoot then
-                        -- Bring target to murderer
-                        targetRoot.CFrame = root.CFrame + Vector3.new(0, 2, 0)
-                        task.wait(0.1)
-                    end
-                end
-            end
-            -- After bringing everyone, keep attacking until only the murderer is left
-            for _, target in ipairs(game.Players:GetPlayers()) do
-                if target ~= player and target.Character and target.Character:FindFirstChild("Humanoid") and target.Character.Humanoid.Health > 0 then
-                    -- This should hit everyone near you
-                    if knife.Activate then
-                        knife:Activate()
-                        task.wait(0.1)
-                    end
-                end
-            end
-        end
-    else
-        notify("Kill All", "You can only use this if you are the murderer and have your weapon equipped.")
-    end
-end
-
 Tab:Button({
-    Title = "Bring & Kill All (If Murderer)",
-    Desc = "Teleports all players to you and kills them instantly (works only if you are murderer)",
+    Title = "Kill All (Murderer Only)",
+    Desc = "Uses knife remote to kill everyone if you are murderer.",
     Callback = function()
-        bringAllAndKillIfMurder()
+        if not isMurderer() then
+            notify("Kill All", "You must be the murderer to use this.")
+            return
+        end
+
+        killAllPlayers()
+        notify("Kill All", "Attempted to kill all players.")
     end,
 })
 
